@@ -1,18 +1,43 @@
 #!/usr/bin/env groovy
 pipeline {
-     agent any
+    agent any
+
+    environment {
+        CREDENTIALS_ID = "jk-project"
+        BUCKET = "jk-bucket-2"
+        PATTERN = "build2/"
+    }
 
     tools {
-      nodejs "Node-12.13.1"
+        nodejs "Node-12.13.1"
     }
 
      stages {
         stage("Prepare") {
-          steps {
-              echo "executing yarn..."
-              sh "yarn install"
-              sh "yarn --version"
-          }
+            steps {
+                echo "executing yarn..."
+                sh "yarn install"
+                sh "yarn --version"
+                sh "ls"
+                sh "rm -rf build"
+                sh "rm -rf build2"
+            }
+        }
+        stage("Build") {
+            steps {
+                sh "yarn run build"
+                sh "mv build build2"
+            }
+        }
+        stage("Upload to GCS Bucket") {
+            steps {
+                step([
+                    $class: "ClassicUploadStep",
+                    credentialsId: env.CREDENTIALS_ID,
+                    bucket: "gs://${env.BUCKET}",
+                    pattern: env.PATTERN
+                ])
+            }
         }
     }
 }
